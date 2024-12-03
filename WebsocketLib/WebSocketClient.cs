@@ -50,7 +50,7 @@ namespace StreamerbotPlugin
                 if (int.TryParse(PluginConfiguration.GetValue(PluginInstance.Main, "Port"), out int port))
                 {
                     UriBuilder uriBuilder = new UriBuilder("ws", address, port, endpoint);
-                    RetryConnect(uriBuilder.Uri.ToString());
+                    ConnectAsync(uriBuilder.Uri.ToString());
                 }
             }
         }
