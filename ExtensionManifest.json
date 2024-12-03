@@ -3,11 +3,11 @@
   "name": "Streamer.bot Plugin",
   "author": "Ivnjey",
   "repository": "https://github.com/Ivnjey/Streamer.bot-Plugin",
-  "packageId": "MrVibesRSA.StreamerbotPlugin",
+  "packageId": "StreamerbotPlugin",
   "version": "1.0.3",
   "target-plugin-api-version": 40,
   "target-macro-deck-version": "2.14.1",
   "target-streamer.bot-version": "0.2.6",
   "dll": "Streamer.bot Plugin.dll",
-  "author-discord-userid": 363735104872251392
+  "author-discord-userid": ""
 }

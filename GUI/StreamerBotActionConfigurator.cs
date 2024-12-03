@@ -44,63 +44,64 @@ namespace StreamerbotPlugin.GUI
                 ""request"": ""GetActions"",
                 ""id"": """ + Guid.NewGuid().ToString() + @"""
             }";
-            
+
             await webSocketClient.SendMessageAsync(jsonRequest);
         }
 
+
         private void UpdateFormAcionList(string message)
         {
-            //configuration["actionArgument"]
             comboBox_ActionList.Items.Clear();
-
-            // Assuming e.Data is a JSON string representing your API response
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse>(message);
             MacroDeckLogger.Info(PluginInstance.Main, $"Current Response: {message}");
 
-            if (apiResponse != null && apiResponse.actions != null)
+            try
             {
-                foreach (var action in apiResponse.actions)
+                var jsonObject = JObject.Parse(message);
+
+                if (jsonObject.ContainsKey("actions") && jsonObject["actions"] is JArray actionsArray)
                 {
-                    // Process each action
-                    // MacroDeckLogger.Error(PluginInstance.Main, $"Action Name: {action.name}, Group: {action.group}, Enabled: {action.enabled}, Subaction Count: {action.subaction_count}");
-                    var item = new Models.Action(action.id, action.name, action.group, action.enabled, action.subaction_count);
-                    comboBox_ActionList.Items.Add(item);
-                }
-
-                if (_macroDeckAction.Configuration != null)
-                {
-                    // Assuming _macroDeckAction.Configuration is a valid JSON string
-                    JObject configurationObject = JObject.Parse(_macroDeckAction.Configuration);
-
-                    // Further processing with configurationObject...
-                    var selected = configurationObject["actionName"]?.ToString();
-                    textBox_Arguments.Text = configurationObject["actionArgument"]?.ToString();
-
-                    label_actionId.Text = configurationObject["actionId"]?.ToString();
-                    label_actionName.Text = configurationObject["actionName"]?.ToString();
-                    label_actionGroup.Text = configurationObject["actionGroup"]?.ToString();
-                    label_actionEnabled.Text = configurationObject["actionEnabled"]?.ToString();
-                    label_subactionCount.Text = configurationObject["actionSubactionCount"]?.ToString();
-
-                    if (selected == string.Empty)
+                    foreach (var actionToken in actionsArray)
                     {
-                        // Handle the case where selected is null or empty
-                        if (comboBox_ActionList.Items.Count > 0)
+                        var action = new Models.Action(
+                            actionToken["id"]?.ToString(),
+                            actionToken["name"]?.ToString(),
+                            actionToken["group"]?.ToString(),
+                            actionToken["enabled"] != null && (bool)actionToken["enabled"],
+                            actionToken["subaction_count"] != null ? (int)actionToken["subaction_count"] : 0
+                        );
+                        comboBox_ActionList.Items.Add(action);
+                    }
+
+                    if (_macroDeckAction.Configuration != null)
+                    {
+                        var configurationObject = JObject.Parse(_macroDeckAction.Configuration);
+
+                        textBox_Arguments.Text = configurationObject["actionArgument"]?.ToString();
+                        label_actionId.Text = configurationObject["actionId"]?.ToString();
+                        label_actionName.Text = configurationObject["actionName"]?.ToString();
+                        label_actionGroup.Text = configurationObject["actionGroup"]?.ToString();
+                        label_actionEnabled.Text = configurationObject["actionEnabled"]?.ToString();
+                        label_subactionCount.Text = configurationObject["actionSubactionCount"]?.ToString();
+
+                        var selected = configurationObject["actionName"]?.ToString();
+                        if (!string.IsNullOrEmpty(selected))
+                        {
+                            comboBox_ActionList.Text = selected;
+                        }
+                        else if (comboBox_ActionList.Items.Count > 0)
                         {
                             comboBox_ActionList.SelectedIndex = 0;
                         }
                     }
-                    else
-                    {
-                        comboBox_ActionList.Text = selected;
-                    }
                 }
                 else
                 {
-                    // Handle the case where _macroDeckAction.Configuration is null
-                    // For example, you could provide default values or log a message.
-                    MacroDeckLogger.Info(PluginInstance.Main, "_macroDeckAction.Configuration is null.");
+                    MacroDeckLogger.Info(PluginInstance.Main, "No actions found in the message");
                 }
+            }
+            catch (Exception ex)
+            {
+                MacroDeckLogger.Error(PluginInstance.Main, $"Error parsing actions: {ex.Message}");
             }
         }
 

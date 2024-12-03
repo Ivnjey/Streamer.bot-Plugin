@@ -119,8 +119,8 @@ namespace StreamerbotPlugin.GUI
             {
                 if (btn_Connect.Text == "Connect")
                 {
-                    btn_Connect.Text = "Disconnect";
                     await webSocketClient.ConnectAsync(serverUri.ToString());
+                    btn_Connect.Text = "Disconnect";
                 }
                 else if (btn_Connect.Text == "Disconnect")
                 {
@@ -148,13 +148,6 @@ namespace StreamerbotPlugin.GUI
             btn_Connect.Text = "Connect";
             Invalidate();
             Update();
-
-            // Если нужно реализовать логику переподключения
-            if (closeStatus == WebSocketCloseStatus.NormalClosure) // Вместо конкретного кода 1006
-            {
-                await Task.Delay(5000);
-                await webSocketClient.ConnectAsync(serverUri.ToString());
-            }
         }
        
 
@@ -168,7 +161,7 @@ namespace StreamerbotPlugin.GUI
                 bool prevState = Convert.ToBoolean(checkBoxCell.Value);
 
                 // Toggle the checkbox state
-                checkBoxCell.Value = !(prevState);
+                checkBoxCell.Value = !prevState;
 
                 // Get the current state after the click
                 bool currentState = Convert.ToBoolean(checkBoxCell.Value);
@@ -183,7 +176,7 @@ namespace StreamerbotPlugin.GUI
                     selectedVariables.Add(new Tuple<string, string>(variableName, variableValue));
                     VariableType type = VariableTypeHelper.GetVariableType(variableValue);
 
-                    VariableManager.SetValue(variableName, variableValue, type, PluginInstance.Main, new string[] { "Gobal Variables" });
+                    VariableManager.SetValue(variableName, variableValue, type, PluginInstance.Main, ["Gobal Variables"]);
                 }
                 else
                 {
@@ -292,7 +285,7 @@ namespace StreamerbotPlugin.GUI
         private void buttonPrimary1_Click(object sender, EventArgs e)
         {
             // Copy text from the textbox to the clipboard
-            Clipboard.SetText(roundedTextBox3.Text);
+            //Clipboard.SetText(roundedTextBox3.Text);
             buttonPrimary1.Text = "Copied";
 
             // Start a timer to change the button text back to "Copy" after a delay
@@ -317,7 +310,7 @@ namespace StreamerbotPlugin.GUI
             // Open the link in the default web browser
             try
             {
-                System.Diagnostics.Process.Start("explorer.exe", "https://github.com/MrVibesRSA/Streamer.bot-Plugin");
+                System.Diagnostics.Process.Start("explorer.exe", "https://github.com/Ivnjey/Streamer.bot-Plugin");
             }
             catch (Exception ex)
             {

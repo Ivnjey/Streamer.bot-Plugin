@@ -15,6 +15,7 @@ using System.Linq;
 using System.Windows.Forms;
 
 
+
 namespace StreamerbotPlugin
 {
     public static class PluginInstance
@@ -49,8 +50,7 @@ namespace StreamerbotPlugin
             MacroDeck.OnMainWindowLoad += MacroDeck_OnMainWindowLoad;
             WebSocketClient.WebSocketOnMessageRecieved_globals += WebSocketClient_WebSocketOnMessageRecieved_globals;
             WebSocketClient.WebSocketConnected += ChangeIconsConnected;
-                                                            // WebSocketClient.WebSocketDisconnected += ChangeIconsConnected;
-            //WebSocketClient.WebSocketDisconnected += (sender, closeStatus) => ChangeIconsConnected(sender, EventArgs.Empty);
+            WebSocketClient.WebSocketDisconnected += ChangeIconsConnected;
 
         }
 
@@ -81,15 +81,15 @@ namespace StreamerbotPlugin
             {
                 _mainWindow.Invoke(() =>
                 {
-                    _statusButton.BackgroundImage = WebSocketClient.IsConnected ? Properties.Resources.streamerbot_logo_Connected : Properties.Resources.streamerbot_logo_Disconnected;
+                   _statusButton.BackgroundImage = WebSocketClient.IsConnected ? Properties.Resources.streamerbot_logo_Connected : Properties.Resources.streamerbot_logo_Disconnected;
                 });
             }
         }
 
         private void ChangeIconsConnected(object sender, EventArgs e)
-    {
-        _statusButton.BackgroundImage = WebSocketClient.IsConnected ? Properties.Resources.streamerbot_logo_Connected : Properties.Resources.streamerbot_logo_Disconnected;
-    }
+        {
+            _statusButton.BackgroundImage = WebSocketClient.IsConnected ? Properties.Resources.streamerbot_logo_Connected : Properties.Resources.streamerbot_logo_Disconnected;
+        }
 
         private void WebSocketClient_WebSocketOnMessageRecieved_globals(object sender, string e)
         {
@@ -101,7 +101,7 @@ namespace StreamerbotPlugin
             // Access the key and value from the data section
             JObject dataObject = (JObject)jsonObject["data"];
             string key = dataObject.Properties().First().Name;
-            string value = (string)dataObject[key];  
+            string value = (string)dataObject[key];
 
             // Retrieve the current global variables from configuration
             string globalVariables = PluginConfiguration.GetValue(PluginInstance.Main, "sb_globals");
