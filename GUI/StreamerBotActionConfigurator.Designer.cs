@@ -21,25 +21,13 @@ namespace StreamerbotPlugin.GUI
         private void InitializeComponent()
         {
             comboBox_ActionList = new RoundedComboBox();
-            label1 = new Label();
-            label2 = new Label();
+            Label label1 = new(), label2 = new(), label3 = new(), label4 = new(), label5 = new(), label10 = new(), label9 = new(),label8 = new (),label7 = new (),
+            label6 = new (),label_subactionCount = new (),label_actionEnabled = new (),label_actionGroup = new (),label_actionName = new (),label_actionId = new ();
             textBox_Arguments = new RoundedTextBox();
             btn_Refresh = new ButtonPrimary();
             panel1 = new RoundedPanel();
-            label3 = new Label();
             roundedPanel1 = new RoundedPanel();
-            label_subactionCount = new Label();
-            label_actionEnabled = new Label();
-            label_actionGroup = new Label();
-            label_actionName = new Label();
-            label_actionId = new Label();
-            label10 = new Label();
-            label9 = new Label();
-            label8 = new Label();
-            label7 = new Label();
-            label5 = new Label();
-            label4 = new Label();
-            label6 = new Label();
+            
             panel1.SuspendLayout();
             roundedPanel1.SuspendLayout();
             SuspendLayout();
@@ -294,24 +282,10 @@ namespace StreamerbotPlugin.GUI
 
         #endregion
         private RoundedComboBox comboBox_ActionList;
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.Label label2;
+        private Label label1, label2, label3, label4,label6,label7,label5,label_actionId,label10,label9,label8,
+        label_subactionCount,label_actionEnabled,label_actionGroup,label_actionName;
         private RoundedTextBox textBox_Arguments;
         private ButtonPrimary btn_Refresh;
-        private RoundedPanel panel1;
-        private Label label3;
-        private RoundedPanel roundedPanel1;
-        private Label label4;
-        private Label label6;
-        private Label label7;
-        private Label label5;
-        private Label label_actionId;
-        private Label label10;
-        private Label label9;
-        private Label label8;
-        private Label label_subactionCount;
-        private Label label_actionEnabled;
-        private Label label_actionGroup;
-        private Label label_actionName;
+        private RoundedPanel panel1, roundedPanel1;
     }
 }

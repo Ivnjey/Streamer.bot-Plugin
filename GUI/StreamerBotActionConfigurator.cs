@@ -17,10 +17,10 @@ namespace StreamerbotPlugin.GUI
 
         public StreamerBotActionConfigurator(PluginAction macroDeckAction, ActionConfigurator actionConfigurator)
         {
-            this._macroDeckAction = macroDeckAction;
+            _macroDeckAction = macroDeckAction;
             InitializeComponent();
             WebSocketClient.WebSocketOnMessageRecieved_actions += WebSocketClient_WebSocketOnMessageRecieved;
-            //GetActionList(); нахер
+            GetActionList();
         }
 
         private void WebSocketClient_WebSocketOnMessageRecieved(object sender, string message)
@@ -47,8 +47,6 @@ namespace StreamerbotPlugin.GUI
 
             await webSocketClient.SendMessageAsync(jsonRequest);
         }
-
-
         private void UpdateFormAcionList(string message)
         {
             comboBox_ActionList.Items.Clear();
@@ -109,7 +107,7 @@ namespace StreamerbotPlugin.GUI
         {
             if (comboBox_ActionList.SelectedItem == null)
             {
-                return false; // Return false if no action is selected
+                return false; 
             }
 
             try
@@ -135,8 +133,8 @@ namespace StreamerbotPlugin.GUI
                     summary = $"Name - '{configuration["actionName"]}', Value - '{configuration["actionArgument"]}'";
                 }
 
-                this._macroDeckAction.ConfigurationSummary = summary; // Set a summary of the configuration that gets displayed in the ButtonConfigurator item
-                this._macroDeckAction.Configuration = configuration.ToString();
+                _macroDeckAction.ConfigurationSummary = summary; // Set a summary of the configuration that gets displayed in the ButtonConfigurator item
+                _macroDeckAction.Configuration = configuration.ToString();
             }
             catch { }
             return true; // Return true if the action was configured successfully; This closes the ActionConfigurator

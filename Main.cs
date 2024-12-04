@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using System.Threading.Tasks;
 
 
 
@@ -27,8 +28,8 @@ namespace StreamerbotPlugin
     {
         private ContentSelectorButton _statusButton = new();
         private MainWindow _mainWindow;
-
         public static event EventHandler UpdateVariableList;
+        public static event EventHandler Connect;
 
         public Main()
         {
@@ -41,7 +42,8 @@ namespace StreamerbotPlugin
         // Gets called when the plugin is loaded
         public override void Enable()
         {
-            this.Actions = new List<PluginAction>
+
+            Actions = new List<PluginAction>
             {
                 // add the instances of your actions here
                 new StreamerBotAction(),
@@ -49,11 +51,35 @@ namespace StreamerbotPlugin
 
             MacroDeck.OnMainWindowLoad += MacroDeck_OnMainWindowLoad;
             WebSocketClient.WebSocketOnMessageRecieved_globals += WebSocketClient_WebSocketOnMessageRecieved_globals;
-            WebSocketClient.WebSocketConnected += ChangeIconsConnected;
-            WebSocketClient.WebSocketDisconnected += ChangeIconsConnected;
+            WebSocketClient.WebSocketConnected += OnWebSocketConnected;
+            WebSocketClient.WebSocketDisconnected += OnWebSocketDisconnected;
+            Connect += InitializeWebSocketConnection;
+            var webSocketClient = WebSocketClient.Instance;
+
+            //Connect?.Invoke(this, EventArgs.Empty);
+            
 
         }
+        private async void InitializeWebSocketConnection(object sender, EventArgs e)
+        {
 
+            MacroDeckLogger.Info(PluginInstance.Main, "Initializing WebSocket connection...");
+
+            await Task.Delay(3000);
+            //await webSocketClient.ConnectAsync();
+        }
+
+
+        
+        private void OnWebSocketConnected(object sender, EventArgs e)
+        {
+            UpdateStatusIcon();
+        }
+
+        private void OnWebSocketDisconnected(object sender, EventArgs e)
+        {
+            UpdateStatusIcon();
+        }
         private void MacroDeck_OnMainWindowLoad(object sender, EventArgs e)
         {
             _mainWindow = sender as MainWindow;
@@ -81,15 +107,12 @@ namespace StreamerbotPlugin
             {
                 _mainWindow.Invoke(() =>
                 {
-                   _statusButton.BackgroundImage = WebSocketClient.IsConnected ? Properties.Resources.streamerbot_logo_Connected : Properties.Resources.streamerbot_logo_Disconnected;
+                    _statusButton.BackgroundImage = WebSocketClient.IsConnected ? Properties.Resources.streamerbot_logo_Connected : Properties.Resources.streamerbot_logo_Disconnected;
                 });
             }
         }
 
-        private void ChangeIconsConnected(object sender, EventArgs e)
-        {
-            _statusButton.BackgroundImage = WebSocketClient.IsConnected ? Properties.Resources.streamerbot_logo_Connected : Properties.Resources.streamerbot_logo_Disconnected;
-        }
+
 
         private void WebSocketClient_WebSocketOnMessageRecieved_globals(object sender, string e)
         {

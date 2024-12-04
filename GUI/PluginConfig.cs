@@ -6,9 +6,6 @@ using SuchByte.MacroDeck.Plugins;
 using SuchByte.MacroDeck.Variables;
 using System;
 using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.WebSockets;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 
@@ -18,30 +15,27 @@ namespace StreamerbotPlugin.GUI
     {
         private List<Tuple<string, string>> selectedVariables = new List<Tuple<string, string>>();
         private List<CheckboxState> checkboxStates = new List<CheckboxState>();
+        WebSocketClient webSocketClient = WebSocketClient.Instance;
+        
 
         public PluginConfig()
         {
+
             InitializeComponent();
             checkboxColumn.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
 
-            var address = PluginConfiguration.GetValue(PluginInstance.Main, "Address") ?? "127.0.0..1";
-            var port = PluginConfiguration.GetValue(PluginInstance.Main, "Port") ?? "8080";
-            var endpoint = PluginConfiguration.GetValue(PluginInstance.Main, "Endpoint") ?? "/";
-
-            textBox_Address.Text = address;
-            textBox_Port.Text = port;
-            textBox_Endpoint.Text = endpoint;
+            textBox_Address.Text = webSocketClient.Address;
+            textBox_Port.Text = webSocketClient.Port.ToString();
+            textBox_Endpoint.Text = webSocketClient.Endpoint;
 
             // Set up tooltip for PictureBox
             ToolTip toolTip = new ToolTip();
             toolTip.SetToolTip(btn_Connect, "Connect to Streamer.bot's Websocked Server.");
             toolTip.SetToolTip(buttonPrimary1, "Copy Streamer.bot action import code");
-            // Assuming WebSocketClient has a property named State indicating the connection state
             btn_Connect.Text = WebSocketClient.IsConnected ? "Disconnect" : "Connect";
 
             WebSocketClient.WebSocketConnected += OnConnected;
-            //WebSocketClient.WebSocketDisconnected += OnDisconnect;
-            WebSocketClient.WebSocketDisconnected += (sender, closeStatus) => OnDisconnect(sender, WebSocketCloseStatus.Empty);
+            WebSocketClient.WebSocketDisconnected += OnDisconnect;
 
 
             // Subscribe to the UpdateVariableList event
@@ -51,18 +45,18 @@ namespace StreamerbotPlugin.GUI
             LoadCheckboxState();
         }
 
-        static string GetFileContent(string url)
-        {
-            using (var client = new HttpClient())
-            {
-                HttpResponseMessage response = client.GetAsync(url).Result; // Using .Result to synchronously wait for the response
-                response.EnsureSuccessStatusCode();
+        // static string GetFileContent(string url)
+        // {
+        //     using (var client = new HttpClient())
+        //     {
+        //         HttpResponseMessage response = client.GetAsync(url).Result; // Using .Result to synchronously wait for the response
+        //         response.EnsureSuccessStatusCode();
 
-                string fileContent = response.Content.ReadAsStringAsync().Result; // Using .Result to synchronously wait for the content
+        //         string fileContent = response.Content.ReadAsStringAsync().Result; // Using .Result to synchronously wait for the content
 
-                return fileContent;
-            }
-        }
+        //         return fileContent;
+        //     }
+        // }
 
         private void HandleUpdateVariableList(object sender, EventArgs e)
         {
@@ -71,70 +65,57 @@ namespace StreamerbotPlugin.GUI
 
         private void btn_OK_Click(object sender, EventArgs e)
         {
-            this.Close();
+            SaveData();
+            Close();
         }
-        private Uri serverUri { get; set; }
-        WebSocketClient webSocketClient = WebSocketClient.Instance;
         private async void btn_Connect_Click(object sender, EventArgs e)
         {
-            if (textBox_Address.Text == "")
+            SaveData();
+            
+            if (btn_Connect.Text == "Connect")
             {
-                using var error = new ErrorMessage("Please enter ip/address.");
-                error.ShowDialog();
-                return;
+                await webSocketClient.ConnectAsync();
+                btn_Connect.Text = "Disconnect";
             }
-
-            if (textBox_Port.Text == "")
+            else if (btn_Connect.Text == "Disconnect")
             {
-                using var error = new ErrorMessage("please enter port.");
-                error.ShowDialog();
-                return;
+                await webSocketClient.CloseAsync(true);
+                btn_Connect.Text = "Connect";
+                // PluginConfiguration.SetValue(PluginInstance.Main, "Configured", "False");
             }
+        }
 
-
-
-            string address = textBox_Address.Text;
-            int port;
-            string endpoint = textBox_Endpoint.Text;
-            serverUri = null;
-
-            if (int.TryParse(textBox_Port.Text, out port))
-            {
-                // Port parsing successful, use the 'port' variable here
-                UriBuilder uriBuilder = new UriBuilder("ws", address, port, endpoint);
-                serverUri = uriBuilder.Uri;
-
-                PluginConfiguration.SetValue(PluginInstance.Main, "Address", textBox_Address.Text);
-                PluginConfiguration.SetValue(PluginInstance.Main, "Port", textBox_Port.Text);
-                PluginConfiguration.SetValue(PluginInstance.Main, "Endpoint", textBox_Endpoint.Text);
-            }
-            else
-            {
-                using var error = new ErrorMessage("Invalid port number entered.");
-                error.ShowDialog();
-                return;
-            }
-
+        private void SaveData()
+        {
             try
             {
-                if (btn_Connect.Text == "Connect")
+                if (string.IsNullOrWhiteSpace(textBox_Port.Text))
                 {
-                    await webSocketClient.ConnectAsync(serverUri.ToString());
-                    btn_Connect.Text = "Disconnect";
+                    new ErrorMessage("please enter port.").ShowDialog();
+                    return;
                 }
-                else if (btn_Connect.Text == "Disconnect")
+                else if (string.IsNullOrWhiteSpace(textBox_Address.Text))
                 {
-                    await webSocketClient.CloseAsync();
-                    btn_Connect.Text = "Connect";
-                    PluginConfiguration.SetValue(PluginInstance.Main, "Configured", "False");
+                    new ErrorMessage("please enter address.").ShowDialog();
+                    return;
                 }
+                webSocketClient.Port = int.Parse(textBox_Port.Text);
+                if (webSocketClient.Port <= 0)
+                {
+                    new ErrorMessage("Incorrect value for port.").ShowDialog();
+                    webSocketClient.Port = 8080;
+                    return;
+                }
+                webSocketClient.Address = textBox_Address.Text;
+                webSocketClient.Endpoint = textBox_Endpoint.Text;
             }
             catch (Exception ex)
             {
-                MacroDeckLogger.Info(PluginInstance.Main, $"Error: {ex.Message}");
+
+                new ErrorMessage($"Invalid {ex.Message}.").ShowDialog();
+
             }
         }
-
         private void OnConnected(object sender, EventArgs e)
         {
             PluginConfiguration.SetValue(PluginInstance.Main, "Configured", "True");
@@ -143,13 +124,14 @@ namespace StreamerbotPlugin.GUI
             Update();
         }
 
-        private async void OnDisconnect(object sender, WebSocketCloseStatus closeStatus) // Вместо CloseEventArgs
+        private void OnDisconnect(object sender, EventArgs e) // Вместо CloseEventArgs
         {
             btn_Connect.Text = "Connect";
             Invalidate();
             Update();
         }
-       
+
+
 
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {

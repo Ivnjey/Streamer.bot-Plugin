@@ -12,7 +12,7 @@ namespace StreamerbotPlugin.GUI
 
         private void btn_OK_Click(object sender, System.EventArgs e)
         {
-            this.Close();
+            Close();
         }
     }
 }
