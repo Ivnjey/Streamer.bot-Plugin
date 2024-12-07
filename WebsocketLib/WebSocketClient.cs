@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Net.WebSockets;
 using System.Collections.Generic;
 using System.Linq;
-using SuchByte.MacroDeck.Plugins;
+
 
 namespace StreamerbotPlugin
 {
