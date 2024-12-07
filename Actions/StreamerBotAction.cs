@@ -11,7 +11,7 @@ namespace StreamerbotPlugin.Actions
 {
     public class StreamerBotAction : PluginAction
     {
-        private WebSocketClient webSocketClient = WebSocketClient.Instance;
+        WebSocketClient webSocketClient = WebSocketClient.Instance;
         // The name of the action
         public override string Name => "Run Action";
 

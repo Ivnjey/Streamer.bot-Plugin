@@ -8,6 +8,7 @@ using SuchByte.MacroDeck.Variables;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Threading.Tasks;
 
 
 namespace StreamerbotPlugin.GUI
@@ -24,7 +25,6 @@ namespace StreamerbotPlugin.GUI
 
             InitializeComponent();
             checkboxColumn.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            MacroDeckLogger.Info(PluginInstance.Main, $"Init Currently Address: {config.Address}, Endpoint: {config.Endpoint}, Port: {config.Port}...");
             textBox_Address.Text = config.Address;
             textBox_Port.Text = config.Port.ToString();
             textBox_Endpoint.Text = config.Endpoint;
@@ -33,10 +33,9 @@ namespace StreamerbotPlugin.GUI
             ToolTip toolTip = new ToolTip();
             toolTip.SetToolTip(btn_Connect, "Connect to Streamer.bot's Websocked Server.");
             toolTip.SetToolTip(buttonPrimary1, "Copy Streamer.bot action import code");
-            btn_Connect.Text = WebSocketClient.IsConnected ? "Disconnect" : "Connect";
-
-            WebSocketClient.WebSocketConnected += OnConnected;
-            WebSocketClient.WebSocketDisconnected += OnDisconnect;
+            IsConnected(this, EventArgs.Empty);
+            WebSocketClient.WebSocketConnected += IsConnected;
+            WebSocketClient.WebSocketDisconnected += IsConnected;
 
 
             // Subscribe to the UpdateVariableList event
@@ -72,18 +71,7 @@ namespace StreamerbotPlugin.GUI
         private async void btn_Connect_Click(object sender, EventArgs e)
         {
             SaveData();
-            
-            if (btn_Connect.Text == "Connect")
-            {
-                await webSocketClient.ConnectAsync();
-                btn_Connect.Text = "Disconnect";
-            }
-            else if (btn_Connect.Text == "Disconnect")
-            {
-                await webSocketClient.CloseAsync(true);
-                btn_Connect.Text = "Connect";
-                // PluginConfiguration.SetValue(PluginInstance.Main, "Configured", "False");
-            }
+            await (WebSocketClient.IsConnected ? webSocketClient.CloseAsync(true) : webSocketClient.ConnectAsync());
         }
 
         private void SaveData()
@@ -111,7 +99,7 @@ namespace StreamerbotPlugin.GUI
                 config.Endpoint = textBox_Endpoint.Text;
                 config.uri = null;
                 MacroDeckLogger.Info(PluginInstance.Main, $"Currently Address: {config.Address}, Endpoint: {config.Endpoint}, Port: {config.Port}...");
-                
+
             }
             catch (Exception ex)
             {
@@ -120,17 +108,9 @@ namespace StreamerbotPlugin.GUI
 
             }
         }
-        private void OnConnected(object sender, EventArgs e)
+        private void IsConnected(object sender, EventArgs e)
         {
-            //PluginConfiguration.SetValue(PluginInstance.Main, "Configured", "True");
-            btn_Connect.Text = "Disconnect";
-            Invalidate();
-            Update();
-        }
-
-        private void OnDisconnect(object sender, EventArgs e) // Вместо CloseEventArgs
-        {
-            btn_Connect.Text = "Connect";
+            btn_Connect.Text = WebSocketClient.IsConnected ? "Disconnect" : "Connect";
             Invalidate();
             Update();
         }

@@ -28,6 +28,7 @@ namespace StreamerbotPlugin
     {
         private ContentSelectorButton _statusButton = new();
         private MainWindow _mainWindow;
+
         public static event EventHandler UpdateVariableList;
         public static event EventHandler Connect;
 
@@ -51,35 +52,15 @@ namespace StreamerbotPlugin
 
             MacroDeck.OnMainWindowLoad += MacroDeck_OnMainWindowLoad;
             WebSocketClient.WebSocketOnMessageRecieved_globals += WebSocketClient_WebSocketOnMessageRecieved_globals;
-            WebSocketClient.WebSocketConnected += OnWebSocketConnected;
-            WebSocketClient.WebSocketDisconnected += OnWebSocketDisconnected;
-            Connect += InitializeWebSocketConnection;
-
-            Connect?.Invoke(this, EventArgs.Empty);
-            
-
+            WebSocketClient.WebSocketConnected += IsConnected;
+            WebSocketClient.WebSocketDisconnected += IsConnected;
+            WebSocketClient webSocketClient = WebSocketClient.Instance;
         }
-        private async void InitializeWebSocketConnection(object sender, EventArgs e)
+        private void IsConnected(object sender, EventArgs e)
         {
-
-            MacroDeckLogger.Info(PluginInstance.Main, "Initializing WebSocket connection...");
-
-            var webSocketClient = WebSocketClient.Instance;
-            await Task.Delay(3000);
-            await webSocketClient.ConnectAsync();
+            UpdateStatusIcon();
         }
-
-
         
-        private void OnWebSocketConnected(object sender, EventArgs e)
-        {
-            UpdateStatusIcon();
-        }
-
-        private void OnWebSocketDisconnected(object sender, EventArgs e)
-        {
-            UpdateStatusIcon();
-        }
         private void MacroDeck_OnMainWindowLoad(object sender, EventArgs e)
         {
             _mainWindow = sender as MainWindow;
@@ -105,10 +86,7 @@ namespace StreamerbotPlugin
 
             if (_mainWindow != null && !_mainWindow.IsDisposed && _statusButton != null && !_statusButton.IsDisposed)
             {
-                _mainWindow.Invoke(() =>
-                {
-                    _statusButton.BackgroundImage = WebSocketClient.IsConnected ? Properties.Resources.streamerbot_logo_Connected : Properties.Resources.streamerbot_logo_Disconnected;
-                });
+                _mainWindow.Invoke(() => _statusButton.BackgroundImage = WebSocketClient.IsConnected ? Properties.Resources.streamerbot_logo_Connected : Properties.Resources.streamerbot_logo_Disconnected);
             }
         }
 

@@ -34,8 +34,10 @@ namespace StreamerbotPlugin.GUI
             // 
             // comboBox_ActionList
             // 
+            
+            //comboBox_ActionList.ForeColor = Color.FromArgb(65, 65, 65);
             comboBox_ActionList.BackColor = Color.FromArgb(65, 65, 65);
-            comboBox_ActionList.DropDownStyle = ComboBoxStyle.DropDown;
+            comboBox_ActionList.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBox_ActionList.Font = new Font("Tahoma", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             comboBox_ActionList.Icon = null;
             comboBox_ActionList.Location = new Point(23, 37);

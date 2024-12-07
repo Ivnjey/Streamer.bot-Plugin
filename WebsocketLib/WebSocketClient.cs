@@ -8,27 +8,26 @@ using System.Net.WebSockets;
 using System.Collections.Generic;
 using System.Linq;
 
-
 namespace StreamerbotPlugin
 {
     internal class WebSocketClient
     {
+        private const int MAX_RETRY_DELAY = 30000;
+        private const int INITIAL_RETRY_DELAY = 1000;
+        private int _currentRetryDelay;
         private static WebSocketClient _instance;
-        private static readonly object _lock = new object();
         Configuration config = Configuration.Instance;
         private ClientWebSocket ws;
         private CancellationTokenSource cts;
         private static bool _isConnected;
+        public static bool IsConnected => _isConnected;
         public bool _isIntentionallyClosed = false;
-        private const int MAX_RETRY_DELAY = 30000; // 30 seconds max delay
-        private const int INITIAL_RETRY_DELAY = 1000; // Initial retry delay
-        private int _currentRetryDelay;
+        private static readonly object _lock = new object();
 
         public static event EventHandler WebSocketConnected;
         public static event EventHandler WebSocketDisconnected;
         public static event EventHandler<string> WebSocketOnMessageRecieved_actions;
         public static event EventHandler<string> WebSocketOnMessageRecieved_globals;
-        public static bool IsConnected => _isConnected;
         public static WebSocketClient Instance
         {
             get
@@ -41,7 +40,7 @@ namespace StreamerbotPlugin
         }
         public WebSocketClient()
         {
-            MacroDeckLogger.Info(PluginInstance.Main, "Initializing WebSocket connection...");
+            MacroDeckLogger.Info(PluginInstance.Main, "Initializing WebSocket..");
             InitializeConnectionAsync();
         }
         public void InitializeConnectionAsync()
@@ -49,76 +48,78 @@ namespace StreamerbotPlugin
 
             Task.Run(async () =>
             {
-                await ConnectAsync(false);
+                await Instance.ConnectAsync();
             });
         }
 
-        public async Task ConnectAsync(bool isIntentionallyClosed = false)
+        public async Task ConnectAsync(bool intentional = false)
         {
-            _currentRetryDelay = INITIAL_RETRY_DELAY;
-            _isIntentionallyClosed = isIntentionallyClosed;
-            if (_isConnected || ws?.State == WebSocketState.Connecting)
+            if (_isConnected.Equals(true) || ws?.State == WebSocketState.Connecting)
             {
                 MacroDeckLogger.Info(PluginInstance.Main, "WebSocket is already connecting or connected.");
                 return;
             }
-
-            for (; !_isConnected;)
+            _isIntentionallyClosed = intentional;
+            while (_isIntentionallyClosed.Equals(false))
             {
+                _currentRetryDelay = INITIAL_RETRY_DELAY;
+
+                for (; _isConnected.Equals(false) && _isIntentionallyClosed.Equals(false);)
+                {
+                    try
+                    {
+                        ws = new ClientWebSocket();
+                        cts = new CancellationTokenSource();
+                        await ws.ConnectAsync(config.uri, cts.Token);
+                        _isConnected = true;
+                    }
+                    // catch (WebSocketException ex)
+                    // {
+                    //     MacroDeckLogger.Error(PluginInstance.Main, $"UnexpectedError: {ex.Message}");
+                    // }
+                    catch (Exception ex)
+                    {
+                        MacroDeckLogger.Warning(PluginInstance.Main, $"WebSocket connection failed: {ex.Message}");
+                        MacroDeckLogger.Info(PluginInstance.Main, $"Reconnection trying in {_currentRetryDelay / 1000} seconds...");
+                        await Task.Delay(_currentRetryDelay);
+                        _currentRetryDelay = Math.Min(_currentRetryDelay * 2, MAX_RETRY_DELAY);
+                        await CleanupWebSocketAsync();
+                    }
+                }
+                if (_isIntentionallyClosed.Equals(true) || cts.Token.IsCancellationRequested)
+                    return;
                 try
                 {
-                    ws = new ClientWebSocket();
-                    cts = new CancellationTokenSource();
-
-                    await Task.Delay(_currentRetryDelay - 1000);
-                    await ws.ConnectAsync(config.uri, cts.Token);
-                    _isConnected = true;
-
+                    MacroDeckLogger.Info(PluginInstance.Main, "WebSocket Connected");
+                    await Instance.ReceiveMessagesAsync();
+                }
+                catch (WebSocketException ex)
+                {
+                    MacroDeckLogger.Info(PluginInstance.Main, $"WebSocketException Error: {ex.Message}");
+                    await CleanupWebSocketAsync();
                 }
                 catch (Exception ex)
                 {
-                    if (_isIntentionallyClosed || cts.Token.IsCancellationRequested)
-                        break;
-                    MacroDeckLogger.Error(PluginInstance.Main, $"WebSocket connection failed: {ex.Message}");
-                    _currentRetryDelay = Math.Min(_currentRetryDelay * 2, MAX_RETRY_DELAY);
-                    MacroDeckLogger.Info(PluginInstance.Main, $"Reconnection trying in {(_currentRetryDelay - 1000) / 1000} seconds...");
+                    MacroDeckLogger.Trace(PluginInstance.Main, $"Exception Error: {ex.Message}");
                     await CleanupWebSocketAsync();
-                    _isConnected = false;
                 }
             }
-            if (_isIntentionallyClosed || cts.Token.IsCancellationRequested)
-                return;
-            try
-            {
-                MacroDeckLogger.Info(PluginInstance.Main, "WebSocket Connected");
-                WebSocketConnected?.Invoke(this, EventArgs.Empty);
-
-                await ReceiveMessagesAsync();
-            }
-            catch (Exception ex)
-            {
-                MacroDeckLogger.Info(PluginInstance.Main, $"Exception Error: {ex.Message}");
-            }
         }
-
         public async Task ReceiveMessagesAsync()
         {
+            WebSocketConnected?.Invoke(this, EventArgs.Empty);
             var buffer = new byte[102400];
             var messageBuffer = new List<byte>();
 
-            try
+            while (ws != null && ws.State == WebSocketState.Open)
             {
-                while (ws != null && ws.State == WebSocketState.Open)
+                try
                 {
                     WebSocketReceiveResult result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), cts.Token);
-
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        MacroDeckLogger.Info(PluginInstance.Main, "Server closed connection.");
-                        await CloseAsync();
-                        return;
+                        throw new WebSocketException("WebSocket Server Closed Connection");
                     }
-
                     messageBuffer.AddRange(buffer.Take(result.Count));
                     if (result.EndOfMessage)
                     {
@@ -127,30 +128,16 @@ namespace StreamerbotPlugin
                         messageBuffer.Clear();
                     }
                 }
-            }
-            catch (WebSocketException ex)
-            {
-                MacroDeckLogger.Error(PluginInstance.Main, $"WebSocket exception: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                MacroDeckLogger.Error(PluginInstance.Main, $"Unexpected error: {ex.Message}");
-            }
-            finally
-            {
-                if (!_isConnected)
+                catch (WebSocketException ex)
                 {
-                    MacroDeckLogger.Info(PluginInstance.Main, "Reconnecting after message receive failure.");
-                    await ConnectAsync();
+                    throw new WebSocketException($"Try to Recconect {ex.Message}");
                 }
-            }
-        }
+                catch (Exception ex)
+                {
+                    MacroDeckLogger.Trace(PluginInstance.Main, $"Error Receive Messages: {ex.Message}");
+                }
 
-        public void ConfirmConnection(string message)
-        {
-            MacroDeckLogger.Info(PluginInstance.Main, $"WebSocket Send Message: {JsonConvert.SerializeObject(message)}");
-            var buffer = Encoding.UTF8.GetBytes(message);
-            ws.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, cts.Token);
+            }
         }
 
         public async Task CleanupWebSocketAsync()
@@ -179,22 +166,19 @@ namespace StreamerbotPlugin
                 WebSocketDisconnected?.Invoke(this, EventArgs.Empty);
             }
         }
-
         public async Task CloseAsync(bool intentional = false)
         {
             _isIntentionallyClosed = intentional;
-
             await CleanupWebSocketAsync();
         }
-
         public async Task SendMessageAsync(string message)
         {
+
             if (ws == null || ws.State != WebSocketState.Open)
             {
                 MacroDeckLogger.Error(PluginInstance.Main, "Cannot send message: WebSocket not connected.");
                 return;
             }
-
             try
             {
                 var buffer = Encoding.UTF8.GetBytes(message);
