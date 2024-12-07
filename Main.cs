@@ -54,9 +54,8 @@ namespace StreamerbotPlugin
             WebSocketClient.WebSocketConnected += OnWebSocketConnected;
             WebSocketClient.WebSocketDisconnected += OnWebSocketDisconnected;
             Connect += InitializeWebSocketConnection;
-            var webSocketClient = WebSocketClient.Instance;
 
-            //Connect?.Invoke(this, EventArgs.Empty);
+            Connect?.Invoke(this, EventArgs.Empty);
             
 
         }
@@ -65,8 +64,9 @@ namespace StreamerbotPlugin
 
             MacroDeckLogger.Info(PluginInstance.Main, "Initializing WebSocket connection...");
 
+            var webSocketClient = WebSocketClient.Instance;
             await Task.Delay(3000);
-            //await webSocketClient.ConnectAsync();
+            await webSocketClient.ConnectAsync();
         }
 
 

@@ -15,26 +15,7 @@ namespace StreamerbotPlugin
     {
         private static WebSocketClient _instance;
         private static readonly object _lock = new object();
-        private int? port;
-        public int Port
-        {
-            get { return port ?? int.Parse(PluginConfiguration.GetValue(PluginInstance.Main, "Port") ?? "8080"); }
-            set { port = value; PluginConfiguration.SetValue(PluginInstance.Main, "Port", value.ToString()); }
-        }
-        public string Address
-        {
-            get { return Address ?? PluginConfiguration.GetValue(PluginInstance.Main, "Address") ?? "127.0.0..1"; }
-            set { Address = value; PluginConfiguration.SetValue(PluginInstance.Main, "Address", value); }
-        }
-        public string Endpoint
-        {
-            get { return Endpoint ?? PluginConfiguration.GetValue(PluginInstance.Main, "Endpoint") ?? "/"; }
-            set { Endpoint = value; PluginConfiguration.SetValue(PluginInstance.Main, "Address", value); }
-        }
-        public Uri uri
-        {
-            get { return new UriBuilder("ws", Address, Port, Endpoint).Uri; }
-        }
+        Configuration config = Configuration.Instance;
         private ClientWebSocket ws;
         private CancellationTokenSource cts;
         private static bool _isConnected;
@@ -74,7 +55,6 @@ namespace StreamerbotPlugin
 
         public async Task ConnectAsync(bool isIntentionallyClosed = false)
         {
-            
             _currentRetryDelay = INITIAL_RETRY_DELAY;
             _isIntentionallyClosed = isIntentionallyClosed;
             if (_isConnected || ws?.State == WebSocketState.Connecting)
@@ -91,7 +71,7 @@ namespace StreamerbotPlugin
                     cts = new CancellationTokenSource();
 
                     await Task.Delay(_currentRetryDelay - 1000);
-                    await ws.ConnectAsync(uri, cts.Token);
+                    await ws.ConnectAsync(config.uri, cts.Token);
                     _isConnected = true;
 
                 }

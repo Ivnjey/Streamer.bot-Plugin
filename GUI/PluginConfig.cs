@@ -4,6 +4,7 @@ using SuchByte.MacroDeck.GUI.CustomControls;
 using SuchByte.MacroDeck.Logging;
 using SuchByte.MacroDeck.Plugins;
 using SuchByte.MacroDeck.Variables;
+
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
@@ -16,17 +17,17 @@ namespace StreamerbotPlugin.GUI
         private List<Tuple<string, string>> selectedVariables = new List<Tuple<string, string>>();
         private List<CheckboxState> checkboxStates = new List<CheckboxState>();
         WebSocketClient webSocketClient = WebSocketClient.Instance;
-        
+        Configuration config = Configuration.Instance;
 
         public PluginConfig()
         {
 
             InitializeComponent();
             checkboxColumn.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
-
-            textBox_Address.Text = webSocketClient.Address;
-            textBox_Port.Text = webSocketClient.Port.ToString();
-            textBox_Endpoint.Text = webSocketClient.Endpoint;
+            MacroDeckLogger.Info(PluginInstance.Main, $"Init Currently Address: {config.Address}, Endpoint: {config.Endpoint}, Port: {config.Port}...");
+            textBox_Address.Text = config.Address;
+            textBox_Port.Text = config.Port.ToString();
+            textBox_Endpoint.Text = config.Endpoint;
 
             // Set up tooltip for PictureBox
             ToolTip toolTip = new ToolTip();
@@ -99,15 +100,18 @@ namespace StreamerbotPlugin.GUI
                     new ErrorMessage("please enter address.").ShowDialog();
                     return;
                 }
-                webSocketClient.Port = int.Parse(textBox_Port.Text);
-                if (webSocketClient.Port <= 0)
+                config.Port = int.Parse(textBox_Port.Text);
+                if (config.Port <= 0)
                 {
                     new ErrorMessage("Incorrect value for port.").ShowDialog();
-                    webSocketClient.Port = 8080;
+                    config.Port = 8080;
                     return;
                 }
-                webSocketClient.Address = textBox_Address.Text;
-                webSocketClient.Endpoint = textBox_Endpoint.Text;
+                config.Address = textBox_Address.Text;
+                config.Endpoint = textBox_Endpoint.Text;
+                config.uri = null;
+                MacroDeckLogger.Info(PluginInstance.Main, $"Currently Address: {config.Address}, Endpoint: {config.Endpoint}, Port: {config.Port}...");
+                
             }
             catch (Exception ex)
             {
@@ -118,7 +122,7 @@ namespace StreamerbotPlugin.GUI
         }
         private void OnConnected(object sender, EventArgs e)
         {
-            PluginConfiguration.SetValue(PluginInstance.Main, "Configured", "True");
+            //PluginConfiguration.SetValue(PluginInstance.Main, "Configured", "True");
             btn_Connect.Text = "Disconnect";
             Invalidate();
             Update();

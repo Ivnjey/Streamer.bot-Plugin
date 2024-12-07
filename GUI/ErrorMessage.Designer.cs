@@ -18,9 +18,8 @@
 
         private void InitializeComponent()
         {
-            label1 = new System.Windows.Forms.Label();
+            System.Windows.Forms.Label label1 = new(), label2 = new();
             btn_OK = new SuchByte.MacroDeck.GUI.CustomControls.ButtonPrimary();
-            label2 = new System.Windows.Forms.Label();
             panel1 = new SuchByte.MacroDeck.GUI.CustomControls.RoundedPanel();
             panel1.SuspendLayout();
             SuspendLayout();
@@ -94,9 +93,8 @@
 
         #endregion
 
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label label1, label2;
         private SuchByte.MacroDeck.GUI.CustomControls.ButtonPrimary btn_OK;
-        private System.Windows.Forms.Label label2;
         private SuchByte.MacroDeck.GUI.CustomControls.RoundedPanel panel1;
     }
 }
