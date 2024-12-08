@@ -107,7 +107,7 @@ namespace StreamerbotPlugin
             // Retrieve the current global variables from configuration
             string globalVariables = PluginConfiguration.GetValue(PluginInstance.Main, "sb_globals");
 
-            if (globalVariables == null || globalVariables == string.Empty)
+            if (string.IsNullOrWhiteSpace(globalVariables))
             {
                 // If no global variables exist yet, create a new dictionary
                 var globals = new Dictionary<string, string>

@@ -52,11 +52,17 @@ namespace StreamerbotPlugin
             });
         }
 
-        public async Task ConnectAsync(bool intentional = false)
+        public async Task ConnectAsync(bool intentional = false)//сделать lock для работы в 1 экземпляре, может начаться хаос.
         {
-            if (_isConnected.Equals(true) || ws?.State == WebSocketState.Connecting)
+
+            if (_isConnected.Equals(true))
             {
-                MacroDeckLogger.Info(PluginInstance.Main, "WebSocket is already connecting or connected.");
+                MacroDeckLogger.Info(PluginInstance.Main, "WebSocket is already connected.");
+                return;
+            }
+            else if (ws?.State == WebSocketState.Connecting)
+            {
+                MacroDeckLogger.Info(PluginInstance.Main, "WebSocket is already connecting.");
                 return;
             }
             _isIntentionallyClosed = intentional;

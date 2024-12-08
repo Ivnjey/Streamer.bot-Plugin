@@ -2,8 +2,10 @@
 {
     public class ApiResponse
     {
+        public string id { get; set; }
         public int count { get; set; }
         public Action[] actions { get; set; }
+        public string status { get; set; }
     }
 
     // Define classes to match the JSON structure

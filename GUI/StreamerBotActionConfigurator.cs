@@ -56,33 +56,40 @@ namespace StreamerbotPlugin.GUI
             {
                 var jsonObject = JObject.Parse(message);
 
-                if (jsonObject.ContainsKey("actions") && jsonObject["actions"] is JArray actionsArray)
+                if (jsonObject.TryGetValue("actions", out var actionsToken) && actionsToken is JArray actionsArray)
                 {
                     foreach (var actionToken in actionsArray)
                     {
                         var action = new Models.Action(
-                            actionToken["id"]?.ToString(),
-                            actionToken["name"]?.ToString(),
-                            actionToken["group"]?.ToString(),
-                            actionToken["enabled"] != null && (bool)actionToken["enabled"],
-                            actionToken["subaction_count"] != null ? (int)actionToken["subaction_count"] : 0
+                            actionToken["id"]?.ToString() ?? string.Empty,
+                            actionToken["name"]?.ToString() ?? "Unnamed",
+                            actionToken["group"]?.ToString() ?? "Ungrouped",
+                            actionToken["enabled"]?.ToObject<bool>() ?? false,
+                            actionToken["subaction_count"]?.ToObject<int>() ?? 0
                         );
                         comboBox_ActionList.Items.Add(action);
                     }
+                }
+                else
+                {
+                    MacroDeckLogger.Info(PluginInstance.Main, "No actions found in the message.");
+                }
 
-                    if (_macroDeckAction.Configuration != null)
+                if (_macroDeckAction?.Configuration != null)
+                {
+                    try
                     {
                         var configurationObject = JObject.Parse(_macroDeckAction.Configuration);
 
-                        textBox_Arguments.Text = configurationObject["actionArgument"]?.ToString();
-                        label_actionId.Text = configurationObject["actionId"]?.ToString();
-                        label_actionName.Text = configurationObject["actionName"]?.ToString();
-                        label_actionGroup.Text = configurationObject["actionGroup"]?.ToString();
-                        label_actionEnabled.Text = configurationObject["actionEnabled"]?.ToString();
-                        label_subactionCount.Text = configurationObject["actionSubactionCount"]?.ToString();
+                        textBox_Arguments.Text = configurationObject["actionArgument"]?.ToString() ?? string.Empty;
+                        label_actionId.Text = configurationObject["actionId"]?.ToString() ?? string.Empty;
+                        label_actionName.Text = configurationObject["actionName"]?.ToString() ?? string.Empty;
+                        label_actionGroup.Text = configurationObject["actionGroup"]?.ToString() ?? string.Empty;
+                        label_actionEnabled.Text = configurationObject["actionEnabled"]?.ToString() ?? string.Empty;
+                        label_subactionCount.Text = configurationObject["actionSubactionCount"]?.ToString() ?? string.Empty;
 
                         var selected = configurationObject["actionName"]?.ToString();
-                        if (!string.IsNullOrEmpty(selected))
+                        if (!string.IsNullOrEmpty(selected) && comboBox_ActionList.Items.Contains(selected))
                         {
                             comboBox_ActionList.Text = selected;
                         }
@@ -91,15 +98,19 @@ namespace StreamerbotPlugin.GUI
                             comboBox_ActionList.SelectedIndex = 0;
                         }
                     }
+                    catch (JsonReaderException ex)
+                    {
+                        MacroDeckLogger.Warning(PluginInstance.Main, $"Error parsing configuration: {ex.Message}");
+                    }
                 }
-                else
-                {
-                    MacroDeckLogger.Info(PluginInstance.Main, "No actions found in the message");
-                }
+            }
+            catch (JsonReaderException ex)
+            {
+                MacroDeckLogger.Warning(PluginInstance.Main, $"Error parsing JSON message: {ex.Message}");
             }
             catch (Exception ex)
             {
-                MacroDeckLogger.Error(PluginInstance.Main, $"Error parsing actions: {ex.Message}");
+                MacroDeckLogger.Warning(PluginInstance.Main, $"Unexpected error: {ex.Message}");
             }
         }
 
@@ -107,7 +118,7 @@ namespace StreamerbotPlugin.GUI
         {
             if (comboBox_ActionList.SelectedItem == null)
             {
-                return false; 
+                return false;
             }
 
             try
@@ -124,7 +135,7 @@ namespace StreamerbotPlugin.GUI
                 configuration["actionEnabled"] = selectedAction.enabled;
                 configuration["actionSubactionCount"] = selectedAction.subaction_count;
 
-                if (configuration["actionArgument"].ToString() == string.Empty)
+                if (string.IsNullOrEmpty(configuration["actionArgument"].ToString()))
                 {
                     summary = $"Name - '{configuration["actionName"]}'";
                 }
@@ -168,13 +179,47 @@ namespace StreamerbotPlugin.GUI
 
         private void comboBox_ActionList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Models.Action selectedAction = (Models.Action)comboBox_ActionList.SelectedItem;
-            label_actionId.Text = selectedAction.id.ToString();
-            label_actionName.Text = selectedAction.name.ToString();
-            label_actionGroup.Text = selectedAction.group.ToString();
-            label_actionEnabled.Text = selectedAction.enabled.ToString();
-            label_subactionCount.Text = selectedAction.subaction_count.ToString();
-            SaveDate();
+            try
+            {
+                // Проверяем, что есть выбранный элемент
+                // if (comboBox_ActionList.SelectedItem == null)
+                // {
+                //     ClearLabels(); // Метод для очистки меток
+                //     return;
+                // }
+
+                // Пробуем привести выбранный элемент к типу Models.Action
+                Models.Action selectedAction = comboBox_ActionList.SelectedItem as Models.Action;
+                // if (selectedAction == null)
+                // {
+                //     ClearLabels();
+                //     return;
+                // }
+
+                // Проверка каждого свойства selectedAction на null
+                label_actionId.Text = selectedAction.id?.ToString() ?? "N/A";
+                label_actionName.Text = selectedAction.name ?? "N/A";
+                label_actionGroup.Text = selectedAction.group ?? "N/A";
+                label_actionEnabled.Text = selectedAction.enabled.ToString() ?? "N/A";
+                label_subactionCount.Text = selectedAction.subaction_count.ToString() ?? "0";
+
+                // Сохранение данных, если всё корректно
+                SaveDate();
+            }
+            catch (Exception ex)
+            {
+                // Логируем ошибку для диагностики
+                MacroDeckLogger.Warning(PluginInstance.Main,$"Error in comboBox_ActionList_SelectedIndexChanged: {ex.Message}");
+            }
+
+        }
+        private void ClearLabels()
+        {
+            label_actionId.Text = "N/A";
+            label_actionName.Text = "N/A";
+            label_actionGroup.Text = "N/A";
+            label_actionEnabled.Text = "N/A";
+            label_subactionCount.Text = "0";
         }
     }
 }
